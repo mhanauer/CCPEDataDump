@@ -82,14 +82,14 @@ library(dplyr)
 library(reshape2)
 test = gpraAdult3monthRedCapAll$TimeStamp
 
-x <- c("a_1", "a_2", "b_2", "c_3")
-x
-vars <- colsplit(x, "_", c("trt", "time"))
-vars
 test = colsplit(test, " ", c("Date", "Time"))
+test$Time = NULL
+test =data.frame(test)
+write.csv(test, "test.csv", row.names = FALSE)
+test = read.csv("test.csv", header = TRUE) 
+test = colsplit(test$Date, "/", c("MONTH", "DAY", "YEAR"))
 test
-
-gpraAdultBase$Date = as.Date(paste(gpraAdultBase$YEAR, gpraAdultBase$MONTH, gpraAdultBase$DAY, sep = "/"))
+test = as.Date(paste(test$YEAR, test$MONTH, test$DAY, sep = "/"))
 
 ```
 
