@@ -21,19 +21,21 @@ Next step is to figure out how to get the date.
 Final step is put the data set back together again.
 
 ```{r}
-
-test = gpraAdult3month
-dim(test)
+nonDate = gpraAdult3month
+write.csv(nonDate, "nonDate.csv", row.names = FALSE)
+nonDate = read.csv("nonDate.csv", header = TRUE)
+dim(nonDate)
 # split data for those in redcap
-n = dim(test)[1]
-test = test[83:n,]
-dim(test)
-n = dim(test)[1]
-test$INSTRMNT_LANG = rep(1, n)
+n = dim(nonDate)[1]
+nonDate = nonDate[83:n,]
+dim(nonDate)
+n = dim(nonDate)[1]
 
-test$DESIGNGRP = rep(1, n)
-test$INTTYPE = rep(3, n)
-test$INTDUR = rep(3,n)
+nonDate$INSTRMNT_LANG = rep(1, n)
+
+nonDate$DESIGNGRP = rep(1, n)
+nonDate$INTTYPE = rep(3, n)
+nonDate$INTDUR = rep(3,n)
 
 ```
 I think I need to merge just the timestamp with 3month GRPA.  Need to grab the partID for both the merge on the ID.  That should get the time stamp.
@@ -78,20 +80,39 @@ colnames(gpraAdult3monthRedCapAll) = c("PARTID", "TimeStamp")
 head(gpraAdult3monthRedCapAll)
 
 # Ok need to separate by space first then get rid of actual time
-library(dplyr)
-library(reshape2)
-test = gpraAdult3monthRedCapAll$TimeStamp
+#library(dplyr)
+#library(reshape2)
+Date = gpraAdult3monthRedCapAll$TimeStamp
 
-x <- c("a_1", "a_2", "b_2", "c_3")
-x
-vars <- colsplit(x, "_", c("trt", "time"))
-vars
-test = colsplit(test, " ", c("Date", "Time"))
-test
+Date = colsplit(Date, " ", c("Date", "Time"))
+Date$Time = NULL
+Date =data.frame(Date)
+write.csv(Date, "Date.csv", row.names = FALSE)
+Date = read.csv("Date.csv", header = TRUE) 
+Date = colsplit(Date$Date, "/", c("MONTH", "DAY", "YEAR"))
+Date$PARTID = gpraAdult3monthRedCapAll$PARTID
+dim(Date)
+```
+Now I need to put the variables back together with the correct names.  So I think I need to merge them.  Need to merge left with the nonDate dataset.
 
-gpraAdultBase$Date = as.Date(paste(gpraAdultBase$YEAR, gpraAdultBase$MONTH, gpraAdultBase$DAY, sep = "/"))
+Need to replace the old dates with the new ones.  but they are different lengths.  Why?
+```{r}
+dim(nonDate)
+nonDate$MONTH = Date$MONTH
+nonDate$YEAR = Date$YEAR 
+nonDate$DAY = Date$DAY
+dim(Date)
 
 ```
+I think all I have to do is replace the last 90 rows with the new data that I have?  
+Let us do a test merge to make sure the variable names are the same for the main data set
+```{r}
+rbind(nonDate, gpraAdult3month)
+
+
+
+```
+
 
 
 
