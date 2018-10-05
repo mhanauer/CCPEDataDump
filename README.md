@@ -7,91 +7,63 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+Figure out what aspects you are missing
+You need to get rid of na's for grant ID
+Get rid of 1750 person
+1924 onward you need numbers for these INSTRMNT_LANG.x	LANG_OTHER.x
+You need long form 
+Change names (get rid of x)
 
-INSTRMNT_LANG	=1	
-GRANT_ID = 	SP021203 # just do this manually
-DESIGNGRP = 1
-PARTID	
-MONTH	DAY	YEAR	
-INTTYPE =3	
-INTDUR = 3
-
-First step is to make sure that the Redcap people all have the required values.
-Next step is to figure out how to get the date.
-Final step is put the data set back together again.
-
+Use gpraAdultAll
+First getting rid of one NA all value
 ```{r}
+gpraAdultAllUpload =  gpraAdultAll[-c(641,1),]
 
-test = gpraAdult3month
-dim(test)
-# split data for those in redcap
-n = dim(test)[1]
-test = test[83:n,]
-dim(test)
-n = dim(test)[1]
-test$INSTRMNT_LANG = rep(1, n)
 
-test$DESIGNGRP = rep(1, n)
-test$INTTYPE = rep(3, n)
-test$INTDUR = rep(3,n)
+# Next there are bunch of NA's need to get rid of them
+# Data beyond this is point is NA 
+gpraAdultAllUpload = gpraAdultAllUpload[1:882,] 
+
+# Get INSTRMNT_LANG.x/y 1's 
+gpraAdultAllUpload$INSTRMNT_LANG.x = rep(1, dim(gpraAdultAllUpload)[1])
+gpraAdultAllUpload$INSTRMNT_LANG.y = rep(1, dim(gpraAdultAllUpload)[1])
+
+# SP021203 for grant id
+gpraAdultAllUpload$GRANT_ID.x = rep("SP021203", dim(gpraAdultAllUpload)[1])
+gpraAdultAllUpload$GRANT_ID.y = rep("SP021203", dim(gpraAdultAllUpload)[1])
+
+gpraAdultAllUploadPre = gpraAdultAllUpload[c(1:139)]
+
+head(gpraAdultAllUploadPre)
+
+
+gpraAdultAllUploadPost = gpraAdultAllUpload[c(1, 140:277)]
+
+head(gpraAdultAllUploadPost)
+
+# Ok so split apart the data with just the dates or one date if there is an NA na.omit the data then merge back with ids so need ids for both
+gpraAdultAllUploadPostDate = data.frame(PARTID = gpraAdultAllUploadPost$PARTID, MONTH =  gpraAdultAllUploadPost$MONTH.y, DAY  = gpraAdultAllUploadPost$DAY.y, YEAR = gpraAdultAllUploadPost$YEAR.y) 
+
+gpraAdultAllUploadPostDate = na.omit(gpraAdultAllUploadPostDate)
+
+gpraAdultAllUploadPost = merge(gpraAdultAllUploadPostDate, gpraAdultAllUploadPost, all.x = TRUE, by = "PARTID")
+
+names(gpraAdultAllUploadPre) = gsub(".x", "", names(gpraAdultAllUploadPre))
+
+names(gpraAdultAllUploadPost) = gsub(".y", "", names(gpraAdultAllUploadPost))
+
+head(gpraAdultAllUploadPost)
+gpraAdultAllUploadPost = gpraAdultAllUploadPost[,-c(2:4)]
+
+
+
+write.csv(gpraAdultAllUploadPre, "gpraAdultAllUploadPre.csv", row.names = FALSE)
+write.csv(gpraAdultAllUploadPost, "gpraAdultAllUploadPost.csv", row.names = FALSE)
+
+gpraAdultAllUpload = rbind(gpraAdultAllUploadPre, gpraAdultAllUploadPost)
+dim(gpraAdultAllUploadPre)
+dim(gpraAdultAllUploadPost)
 
 ```
-I think I need to merge just the timestamp with 3month GRPA.  Need to grab the partID for both the merge on the ID.  That should get the time stamp.
-First need to grab the time stamp before you delete it.  
-
-```{r}
-#gpraAdultBase = read.spss("S:/Indiana Research & Evaluation/CCPE/CCPE SPSS - Datasets/Baseline Adult/CCPE GRPA - Baseline.sav", use.value.labels = FALSE, to.data.frame = TRUE)
-gpraAdult3month = read.spss("S:/Indiana Research & Evaluation/CCPE/CCPE SPSS - Datasets/3 Month Reassessments ADULT/Reassess 3M CCPE GPRA Adult.sav", use.value.labels = FALSE, to.data.frame = TRUE)
-## Need to add the 3 month from the Red for the only GRPA and all assessments, but just drop all other assessments so everything after svytruth
-setwd("S:/Indiana Research & Evaluation/CCPE/CCPE SPSS - Datasets/3 Month Reassessments ADULT")
-gpraAdult3monthRedCap = read.csv("CCPEFollowupAdultQueRedCap.csv", header = TRUE)
-gpraAdult3monthRedCapFull = read.csv("CCPEFollowupAdultQueRedCapFull.csv", header = TRUE)
-# Need to get rid of extra for red cap full
-
-gpraAdult3monthRedCapFull = gpraAdult3monthRedCapFull[,1:145]
-gpraAdult3monthRedCap = gpraAdult3monthRedCap[,1:145]
-gpraAdult3monthRedCapAll = rbind(gpraAdult3monthRedCapFull, gpraAdult3monthRedCap)
-# Missing several variables and id value not the same
-# First make the variables all upper case
-
-names(gpraAdult3monthRedCapAll) = toupper(names(gpraAdult3monthRedCapAll))
-# These don't match RECORD_ID REDCAP_SURVEY_IDENTIFIER NATIONAL_MINORITY_SAHIV_PREVENTION_INITIATIVE_ADUL_TIMESTAMP                 NAME
-head(gpraAdult3monthRedCapAll)
-#Subset only those REDCAP_SURVEY_IDENTIFIER with none na's
-gpraAdult3monthRedCapAll = subset(gpraAdult3monthRedCapAll, REDCAP_SURVEY_IDENTIFIER > 0)
-# Need to change these to just a year.
-gpraAdult3monthRedCapAll$NATIONAL_MINORITY_SAHIV_PREVENTION_INITIATIVE_ADUL_TIMESTAMP
-YEAR = data.frame(gpraAdult3monthRedCapAll$NATIONAL_MINORITY_SAHIV_PREVENTION_INITIATIVE_ADUL_TIMESTAMP)
-colnames(YEAR) = c("YEAR")
-
-YEAR = data.frame(apply(YEAR, 2, function(x){ifelse(x > 12/13/2016, 2017, ifelse(x > 12/31/2017, 2018, x))}))
-# Need to get rid of RECORD_ID, NATIONAL_MINORITY_SAHIV_PREVENTION_INITIATIVE_ADUL_TIMESTAMP, NAME
-gpraAdult3monthRedCapAll$RECORD_ID = NULL
-
-gpraAdult3monthRedCapAll$REDCAP_SURVEY_IDENTIFIER
-```
-Grab the time stamp and part id and break out the time stamp
-```{r}
-gpraAdult3monthRedCapAll = data.frame(gpraAdult3monthRedCapAll$REDCAP_SURVEY_IDENTIFIER,gpraAdult3monthRedCapAll$NATIONAL_MINORITY_SAHIV_PREVENTION_INITIATIVE_ADUL_TIMESTAMP) 
-
-colnames(gpraAdult3monthRedCapAll) = c("PARTID", "TimeStamp")
-head(gpraAdult3monthRedCapAll)
-
-# Ok need to separate by space first then get rid of actual time
-library(dplyr)
-library(reshape2)
-test = gpraAdult3monthRedCapAll$TimeStamp
-
-x <- c("a_1", "a_2", "b_2", "c_3")
-x
-vars <- colsplit(x, "_", c("trt", "time"))
-vars
-test = colsplit(test, " ", c("Date", "Time"))
-test
-
-gpraAdultBase$Date = as.Date(paste(gpraAdultBase$YEAR, gpraAdultBase$MONTH, gpraAdultBase$DAY, sep = "/"))
-
-```
-
 
 
